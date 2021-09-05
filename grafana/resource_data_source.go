@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -59,6 +60,15 @@ source selected (via the 'type' argument).
 				Optional:    true,
 				Default:     "",
 				Description: "(Required by some data source types) The name of the database to use on the selected data source server.",
+			},
+			"http_headers": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "Custom HTTP headers",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"is_default": {
 				Type:        schema.TypeBool,
@@ -460,6 +470,11 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 		id, err = strconv.ParseInt(idStr, 10, 64)
 	}
 
+	httpHeaders := make(map[string]string)
+	for key, value := range d.Get("http_headers").(map[string]interface{}) {
+		httpHeaders[key] = fmt.Sprintf("%v", value)
+	}
+
 	return &gapi.DataSource{
 		ID:                id,
 		Name:              d.Get("name").(string),
@@ -473,6 +488,7 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 		BasicAuth:         d.Get("basic_auth_enabled").(bool),
 		BasicAuthUser:     d.Get("basic_auth_username").(string),
 		BasicAuthPassword: d.Get("basic_auth_password").(string),
+		HTTPHeaders:       httpHeaders,
 		JSONData:          makeJSONData(d),
 		SecureJSONData:    makeSecureJSONData(d),
 	}, err
